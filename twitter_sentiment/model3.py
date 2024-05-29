@@ -1,19 +1,19 @@
 import tweepy
 
 # Replace with your own credentials
-consumer_key = 'FV3FC3OOojtWgAqrdDXVwvBlk'
 bearer_token = 'AAAAAAAAAAAAAAAAAAAAAJudtwEAAAAAyeYEb6xDQFv83R1eX0nFdz9lKw8%3DHN5fOyrGGaZE4uGvvIugi0uT1ijeNzpmePtn6KPECQD7o8ASJF'
-consumer_secret = 'RW97oqiCzPtKn7FPzwsQXhPwGLQDDfbuGHHnArdrxUZMLtoeAN'
-access_token = '1791398915113205760-obLLCohz2A2qN0xzkTag9nAibDNQre'
-access_token_secret = 'CPP7DKKcBI3zwtl2wjMBy4HbdbaAdvXxuNghHKgPA4u9I'
 
-auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, access_token, access_token_secret)
-api = tweepy.API(auth)
+# Initialize tweepy Client with bearer token
+client = tweepy.Client(bearer_token=bearer_token)
 
-hashtag = '#ChatGPT'
-tweets = tweepy.Cursor(api.search_tweets, q=hashtag, lang="en").items(5)
+# Define the query
+query = '#ChatGPT lang:en'
 
-tweet_texts = [tweet.text for tweet in tweets]
+# Fetch tweets using tweepy.Client.search_recent_tweets
+tweets = client.search_recent_tweets(query=query, max_results=5, tweet_fields=['text'])
+
+# Extract tweet texts
+tweet_texts = [tweet.text for tweet in tweets.data]
 
 from textblob import TextBlob
 
@@ -36,5 +36,5 @@ sentiments = [analyzer.polarity_scores(tweet)['compound'] for tweet in tweet_tex
 plt.hist(sentiments, bins=20)
 plt.xlabel('Sentiment Score')
 plt.ylabel('Frequency')
-plt.title('Sentiment Analysis of #YourBrand')
+plt.title('Sentiment Analysis of #ChatGPT')
 plt.show()
