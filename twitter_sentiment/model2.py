@@ -14,8 +14,12 @@ bearer_token = 'AAAAAAAAAAAAAAAAAAAAAJudtwEAAAAAyeYEb6xDQFv83R1eX0nFdz9lKw8%3DHN
 # access_token = '1791398915113205760-obLLCohz2A2qN0xzkTag9nAibDNQre'
 # access_token_secret = 'CPP7DKKcBI3zwtl2wjMBy4HbdbaAdvXxuNghHKgPA4u9I'
 
+new_bearer ='AAAAAAAAAAAAAAAAAAAAAJudtwEAAAAAXG3c877e7NB%2BzU%2B0OKeIiib7vtc%3DdMZkXDm2FwjFCl38VUXTetQ9sOFk2A3C0v5sPRHD8rYJhfRcNd'
+
 # Authenticate to the Twitter API v2
-client = tweepy.Client(bearer_token=bearer_token)
+# client = tweepy.Client(bearer_token=bearer_token)
+
+
 print('connecting')
 print(client)
 
