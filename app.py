@@ -9,11 +9,36 @@ from dash_bootstrap_components._components.Container import Container
 import plotly.graph_objs as go
 import math
 from datetime import datetime
+from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE
 
 # inital variable for neutrogena
 df_neutrogena = pd.read_csv('./reddit_sentiment/neutrogena.csv')
 
 # components
+navbar = dbc.Navbar(
+    dbc.Container(
+      children=[
+        html.H4(children="Brand Sentiment Analysis", style=HEADER_TITLE_STYLE)
+      ],
+      fluid=True
+    ),
+    color="dark",
+    dark=True,
+    class_name="navbar",
+    style=NAVBAR_STYLE
+)
+
+pie_chart_container = dbc.Container(
+  children=[
+    "pie charts"
+  ]
+)
+
+sentiment_plot_container = dbc.Container(
+  children=[
+    "sentiment line plot"
+  ]
+)
 
 # initialise the dash application
 app = dash.Dash(
@@ -22,9 +47,14 @@ app = dash.Dash(
 )
 
 # app layout
-app.layout = dbc.Container(children=
-    ['test'],
-    fluid=True,
+app.layout = dbc.Container(
+  children=[
+    navbar,
+    pie_chart_container,
+    sentiment_plot_container
+  ],
+  fluid=True,
+  style=LAYOUT_STYLE,
 )
 
 # running the dashboard locally on http://127.0.0.1:8050/
