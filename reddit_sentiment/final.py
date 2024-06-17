@@ -9,12 +9,6 @@ import re
 from datetime import datetime, timedelta
 from langdetect import detect, LangDetectException
 
-user_agent = "Brand sentiment analysis"
-reddit = praw.Reddit(
-  client_id="ujQpmAa-rxhI6tgE246E4w",
-  client_secret="BnhybdI_fallhH64Us6vutIfsXP21Q",
-  user_agent=user_agent
-)
 
 def fetch_reddit_comments(subreddit, query, limit=100, months=6):
     subreddit = reddit.subreddit(subreddit)
@@ -23,7 +17,6 @@ def fetch_reddit_comments(subreddit, query, limit=100, months=6):
         post_date = datetime.utcfromtimestamp(post.created_utc)
         post.comments.replace_more(limit=0)  # Ensure all comments are fetched
         comments = post.comments.list()
-        #print(comments)
         if comments:
             for comment in comments:
                 if hasattr(comment, 'body') and comment.body.strip():  # Ensure comment body is not empty or just whitespace
@@ -42,15 +35,6 @@ def fetch_reddit_comments(subreddit, query, limit=100, months=6):
         df['Language'] = 'English'
     return df
 
-df_neutrogena = fetch_reddit_comments('all', 'neutrogena', 100)
-df_neutrogena.to_csv('neutrogena.csv', sep=',', index=False, encoding='utf-8')
-
-# Load sentiment analysis pipeline
-#model_name = "distilbert-base-uncased-finetuned-sst-2-english" #only pos and neg
-model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-sentiment_pipeline = pipeline("sentiment-analysis", model=model_name)
-
 def truncate_text(text, max_tokens=510):
     tokens = tokenizer.tokenize(text)
     if len(tokens) > max_tokens:
@@ -63,4 +47,22 @@ def get_sentiment_score(text):
     return result['label'], result['score']
 
 # Apply sentiment analysis
-df_neutrogena['Sentiment'], df_neutrogena['Sentiment_Score'] = zip(*df_neutrogena['Comment'].apply(get_sentiment_score))
+
+if __name__ == '__main__':
+    user_agent = "Brand sentiment analysis"
+    reddit = praw.Reddit(
+    client_id="ujQpmAa-rxhI6tgE246E4w",
+    client_secret="BnhybdI_fallhH64Us6vutIfsXP21Q",
+    user_agent=user_agent
+    )
+    df = fetch_reddit_comments('all', 'neutrogena', 100)
+    df.to_csv('neutrogena.csv', sep=',', index=False, encoding='utf-8')
+
+    # Load sentiment analysis pipeline
+    #model_name = "distilbert-base-uncased-finetuned-sst-2-english" #only pos and neg
+    model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    sentiment_pipeline = pipeline("sentiment-analysis", model=model_name)
+
+    df['Sentiment'], df['Sentiment_Score'] = zip(*df['Comment'].apply(get_sentiment_score))
+
