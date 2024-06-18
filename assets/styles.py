@@ -11,3 +11,11 @@ NAVBAR_STYLE = {
 HEADER_TITLE_STYLE = {
   "color": "white",
 }
+
+PLOT_CONTAINER_STYLE = {
+  'backgroundColor' : '#F5F5F5',
+  'borderRadius': '20px',
+  'padding': '30px',
+  'marginBottom': '15px',
+  'marginTop' : '15px'
+}
