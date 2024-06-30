@@ -20,7 +20,7 @@ df = pd.concat([df1, df2], ignore_index=True)
 df['Cleaned_Comment'] = df['Comment'].apply(clean_comment)
 
 # Define additional stop words
-additional_stopwords = {"skin", "product", "https", "use", "one", "would", "like", "get"}
+additional_stopwords = {"skin", "product", "https", "use", "one", "would", "get", "neutrogena", "im"}
 
 
 # Filter comments based on sentiment
@@ -30,7 +30,7 @@ negative_comments = " ".join(comment for comment in df[df.Sentiment == 'negative
 
 # Generate the word clouds
 positive_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='Blues', stopwords=STOPWORDS.union(additional_stopwords)).generate(positive_comments)
-neutral_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='Greys', stopwords=STOPWORDS.union(additional_stopwords)).generate(neutral_comments)
+neutral_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='gist_gray', stopwords=STOPWORDS.union(additional_stopwords)).generate(neutral_comments)
 negative_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='Reds', stopwords=STOPWORDS.union(additional_stopwords)).generate(negative_comments)
 
 # Display the word clouds

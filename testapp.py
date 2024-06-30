@@ -1,19 +1,11 @@
 # import packages
-from dash import Dash, html, dcc, callback, Output, Input, clientside_callback, State, ALL, ctx, dash_table
+from dash import Dash, html, dcc, callback, Output, Input, State, dash_table
 from dash.exceptions import PreventUpdate
 import plotly.express as px
 import pandas as pd
-import plotly.io as pio
 import dash
 import dash_bootstrap_components as dbc
-from dash_bootstrap_components._components.Container import Container
 import plotly.graph_objs as go
-from wordcloud import WordCloud, STOPWORDS
-import matplotlib.pyplot as plt
-import math
-from PIL import Image
-import io
-import re
 from datetime import datetime
 from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE, PLOT_CONTAINER_STYLE
 
@@ -28,77 +20,6 @@ labels_with_counts = [f'{label} ' for label, count in zip(sentiment_counts.index
 # Filter out neutral sentiments for net sentiment calculation
 net_sentiment_counts = df[df['Sentiment'] != 'neutral']['Sentiment'].value_counts()
 net_labels_with_counts = [f'{label} ' for label, count in zip(net_sentiment_counts.index, net_sentiment_counts.values)]
-
-# Define a function to clean the comments
-def clean_comment(comment):
-    # Remove URLs
-    comment = re.sub(r'http\S+', '', comment)
-    # Remove non-alphabetic characters and convert to lowercase
-    comment = re.sub(r'[^A-Za-z\s]', '', comment).lower()
-    return comment
-
-df['Cleaned_Comment'] = df['Comment'].apply(clean_comment)
-
-# Define additional stop words
-additional_stopwords = {"skin", "product", "https", "use", "one", "would", "get", "neutrogena", "im"}
-
-# Filter comments based on sentiment
-positive_comments = " ".join(comment for comment in df[df.Sentiment == 'positive'].Cleaned_Comment)
-neutral_comments = " ".join(comment for comment in df[df.Sentiment == 'neutral'].Cleaned_Comment)
-negative_comments = " ".join(comment for comment in df[df.Sentiment == 'negative'].Cleaned_Comment)
-
-# Generate the word clouds
-positive_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='Blues', stopwords=STOPWORDS.union(additional_stopwords)).generate(positive_comments)
-neutral_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='gist_gray', stopwords=STOPWORDS.union(additional_stopwords)).generate(neutral_comments)
-negative_wordcloud = WordCloud(width=800, height=400, background_color='white', colormap='Reds', stopwords=STOPWORDS.union(additional_stopwords)).generate(negative_comments)
-
-fig, ax = plt.subplots(1, 3, figsize=(20, 10))
-
-# Positive words cloud
-ax[0].imshow(positive_wordcloud, interpolation='bilinear')
-ax[0].set_title('Positive Sentiment', fontsize=20)
-ax[0].axis('off')
-
-# Neutral words cloud
-ax[1].imshow(neutral_wordcloud, interpolation='bilinear')
-ax[1].set_title('Neutral Sentiment', fontsize=20)
-ax[1].axis('off')
-
-# Negative words cloud
-ax[2].imshow(negative_wordcloud, interpolation='bilinear')
-ax[2].set_title('Negative Sentiment', fontsize=20)
-ax[2].axis('off')
-
-# Convert Matplotlib figure to PNG image
-buf = io.BytesIO()
-plt.savefig(buf, format='png')
-buf.seek(0)
-img = Image.open(buf) 
-
-# Convert the image to a Plotly figure
-wordcloud_fig = go.Figure()
-
-# Add layout image to the Plotly figure
-wordcloud_fig.add_layout_image(
-    dict(
-        source=img,
-        x=0,
-        y=1,
-        sizex=1,
-        sizey=1,
-        xref="paper",
-        yref="paper",
-        opacity=1,
-        layer="below"
-    )
-)
-
-wordcloud_fig.update_layout(
-    xaxis=dict(visible=False),
-    yaxis=dict(visible=False),
-    margin=dict(l=0, r=0, t=0, b=0)
-)
-
 
 # components
 navbar = dbc.Navbar(
@@ -274,12 +195,18 @@ comments_table_container = dbc.Container(
     style=PLOT_CONTAINER_STYLE
 )
 
-wordcloud_container = dbc.Container(
-    dbc.Row(
-        [
-            dbc.Col(dcc.Graph(figure=wordcloud_fig)),
-       ], 
-    ),
+# Word cloud components
+word_cloud_container = dbc.Container(
+    children=[
+        html.H4("Word Cloud Analysis"),
+        dbc.Row(
+            [
+                dbc.Col(html.Img(src='/assets/positive_wordcloud.png', style={'width': '100%'}), width=4),
+                dbc.Col(html.Img(src='/assets/neutral_wordcloud.png', style={'width': '100%'}), width=4),
+                dbc.Col(html.Img(src='/assets/negative_wordcloud.png', style={'width': '100%'}), width=4)
+            ]
+        )
+    ],
     style=PLOT_CONTAINER_STYLE
 )
 
@@ -296,7 +223,7 @@ app.layout = dbc.Container(
         donut_charts_container,
         custom_legend,
         sentiment_plot_container,
-        wordcloud_container,
+        word_cloud_container,  # Add the word cloud container here
         comments_table_container
     ],
     fluid=True,
