@@ -56,7 +56,7 @@ if __name__ == '__main__':
     user_agent=user_agent
     )
     df = fetch_reddit_comments('all', 'neutrogena', 100)
-    df.to_csv('neutrogena.csv', sep=',', index=False, encoding='utf-8')
+    
 
     # Load sentiment analysis pipeline
     #model_name = "distilbert-base-uncased-finetuned-sst-2-english" #only pos and neg
@@ -65,4 +65,14 @@ if __name__ == '__main__':
     sentiment_pipeline = pipeline("sentiment-analysis", model=model_name)
 
     df['Sentiment'], df['Sentiment_Score'] = zip(*df['Comment'].apply(get_sentiment_score))
+    # Convert the 'Date' column to datetime
+    df['Date'] = pd.to_datetime(df['Date'])
+
+    # Group by week / day and sentiment
+    df['Week'] = df['Date'].dt.to_period('W').apply(lambda r: r.start_time)
+    weekly_sentiment = df.groupby(['Week', 'Sentiment']).size().unstack(fill_value=0)
+    df['Day'] = df['Date'].dt.to_period('D').apply(lambda r: r.start_time)
+    daily_sentiment = df.groupby(['Day', 'Sentiment']).size().unstack(fill_value=0)
+
+    df.to_csv('./neutrogena_reddit.csv', sep=',', index=False, encoding='utf-8')
 
