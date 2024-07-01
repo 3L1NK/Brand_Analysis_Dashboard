@@ -1,27 +1,63 @@
 # import packages
-from dash import Dash, html, dcc, callback, Output, Input, State, dash_table
-from dash.exceptions import PreventUpdate
-import plotly.express as px
-import pandas as pd
-import dash
+from dash import Dash, html, dcc, callback, Output, Input, clientside_callback, ALL, ctx, dash_table
+from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE, PLOT_CONTAINER_STYLE
+from dash_bootstrap_components._components.Container import Container
 import dash_bootstrap_components as dbc
+from wordcloud import WordCloud, STOPWORDS
 import plotly.graph_objs as go
 from datetime import datetime
-from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE, PLOT_CONTAINER_STYLE
+import matplotlib.pyplot as plt
+import pandas as pd
+import base64
+import dash
+import io
+import re
 
 # initial variable for neutrogena
 df1 = pd.read_csv('./youtube_sentiment/youtube_comments_with_sentiment.csv')
 df2 = pd.read_csv('./reddit_sentiment/neutrogena_reddit.csv')
+df1['Source'] = 'YouTube'
+df2['Source'] = 'Reddit'
 df = pd.concat([df1, df2], ignore_index=True)
 
-sentiment_counts = df['Sentiment'].value_counts()
-labels_with_counts = [f'{label} ' for label, count in zip(sentiment_counts.index, sentiment_counts.values)]
+# Define a function to clean the comments
+def clean_comment(comment):
+    # Remove URLs
+    comment = re.sub(r'http\S+', '', comment)
+    # Remove non-alphabetic characters and convert to lowercase
+    comment = re.sub(r'[^A-Za-z\s]', '', comment).lower()
+    return comment
+
+df['Cleaned_Comment'] = df['Comment'].apply(clean_comment)
+
+# Define additional stop words
+additional_stopwords = {"skin", "product", "https", "use", "one", "would", "get", "neutrogena", "im"}
 
 # Filter out neutral sentiments for net sentiment calculation
-net_sentiment_counts = df[df['Sentiment'] != 'neutral']['Sentiment'].value_counts()
-net_labels_with_counts = [f'{label} ' for label, count in zip(net_sentiment_counts.index, net_sentiment_counts.values)]
+def filter_df_by_source(df, source):
+    if source:
+        return df[df['Source'] == source]
+    return df
 
-# components
+# Generate word clouds
+def generate_wordclouds(df):
+    positive_comments = " ".join(comment for comment in df[df.Sentiment == 'positive'].Cleaned_Comment)
+    neutral_comments = " ".join(comment for comment in df[df.Sentiment == 'neutral'].Cleaned_Comment)
+    negative_comments = " ".join(comment for comment in df[df.Sentiment == 'negative'].Cleaned_Comment)
+    
+    positive_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='Blues', stopwords=STOPWORDS.union(additional_stopwords)).generate(positive_comments)
+    neutral_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='gist_gray', stopwords=STOPWORDS.union(additional_stopwords)).generate(neutral_comments)
+    negative_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='Reds', stopwords=STOPWORDS.union(additional_stopwords)).generate(negative_comments)
+
+    return positive_wordcloud, neutral_wordcloud, negative_wordcloud
+
+def wordcloud_to_image(wordcloud):
+    buf = io.BytesIO()
+    wordcloud.to_image().save(buf, format='PNG')
+    buf.seek(0)
+    return buf
+
+# Components
 navbar = dbc.Navbar(
     dbc.Container(
         children=[
@@ -41,123 +77,6 @@ sentiment_colors = {
     'neutral': 'grey',
     'negative': 'red'
 }
-
-# donut chart for sentiment count
-donut_chart = go.Figure(data=[go.Pie(
-    labels=labels_with_counts,
-    values=sentiment_counts.values,
-    hole=.3,
-    textinfo='label+percent', 
-    hoverinfo='label+value+percent',
-    marker=dict(colors=[sentiment_colors[label.strip()] for label in sentiment_counts.index])
-)])
-
-donut_chart.update_layout(
-    title_text='Sentiment Distribution',
-    annotations=[dict(text='Sentiment', x=0.5, y=0.5, font_size=12, showarrow=False)],
-    showlegend=False
-)
-
-# Create the net sentiment donut chart
-net_donut_chart = go.Figure(data=[go.Pie(
-    labels=net_labels_with_counts,
-    values=net_sentiment_counts.values,
-    hole=.3,
-    textinfo='label+percent', 
-    hoverinfo='label+value+percent',
-    marker=dict(colors=[sentiment_colors[label.strip()] for label in net_sentiment_counts.index])
-)])
-
-net_donut_chart.update_layout(
-    title_text='Net Sentiment Distribution (Positive vs Negative)',
-    annotations=[dict(text='Net Sentiment', x=0.5, y=0.5, font_size=12, showarrow=False)],
-    showlegend=False
-)
-
-# Custom legend
-custom_legend = html.Div(
-    [
-        html.Span("Sentiment: ", style={'font-weight': 'bold'}),
-        html.Span("Positive", style={'color': sentiment_colors['positive'], 'margin-right': '10px'}),
-        html.Span("Neutral", style={'color': sentiment_colors['neutral'], 'margin-right': '10px'}),
-        html.Span("Negative", style={'color': sentiment_colors['negative']})
-    ],
-    style={'text-align': 'center', 'margin-top': '10px'}
-)
-
-# Container for both donut charts side by side
-donut_charts_container = dbc.Container(
-    dbc.Row(
-        [
-            dbc.Col(dcc.Graph(figure=donut_chart), width=6),
-            dbc.Col(dcc.Graph(figure=net_donut_chart), width=6)
-        ]
-    ),
-    style=PLOT_CONTAINER_STYLE
-)
-
-# bar chart for weekly sentiment
-weekly_sentiment = df.groupby(['Week', 'Sentiment']).size().unstack(fill_value=0)
-
-bar_chart = go.Figure()
-
-# Add positive sentiments
-if 'positive' in weekly_sentiment:
-    bar_chart.add_trace(go.Bar(
-        x=weekly_sentiment.index,
-        y=weekly_sentiment['positive'],
-        name='Positive',
-        marker_color=sentiment_colors['positive']
-    ))
-
-# Add neutral sentiments
-if 'neutral' in weekly_sentiment:
-    bar_chart.add_trace(go.Bar(
-        x=weekly_sentiment.index,
-        y=weekly_sentiment['neutral'],
-        name='Neutral',
-        marker_color=sentiment_colors['neutral']
-    ))
-
-# Add negative sentiments (inverted to point downwards)
-if 'negative' in weekly_sentiment:
-    bar_chart.add_trace(go.Bar(
-        x=weekly_sentiment.index,
-        y=-weekly_sentiment['negative'],
-        name='Negative',
-        marker_color=sentiment_colors['negative']
-    ))
-
-# Update layout
-bar_chart.update_layout(
-    title='Weekly Sentiment',
-    xaxis_title='Time',
-    yaxis_title='Count',
-    barmode='group',
-    bargap=0.2,
-    bargroupgap=0.1,
-    showlegend=False
-)
-
-# Custom legend for bar chart
-bar_chart_custom_legend = html.Div(
-    [
-        html.Span("Sentiment: ", style={'font-weight': 'bold'}),
-        html.Span("Positive", style={'color': sentiment_colors['positive'], 'margin-right': '10px'}),
-        html.Span("Neutral", style={'color': sentiment_colors['neutral'], 'margin-right': '10px'}),
-        html.Span("Negative", style={'color': sentiment_colors['negative']})
-    ],
-    style={'text-align': 'center', 'margin-top': '10px'}
-)
-
-sentiment_plot_container = dbc.Container(
-    children=[
-        dcc.Graph(figure=bar_chart),
-        bar_chart_custom_legend
-    ],
-    style=PLOT_CONTAINER_STYLE
-)
-
 comments_table = dash_table.DataTable(
     id='comments-table',
     columns=[
@@ -194,20 +113,17 @@ comments_table_container = dbc.Container(
     ],
     style=PLOT_CONTAINER_STYLE
 )
-
-# Word cloud components
-word_cloud_container = dbc.Container(
-    children=[
-        html.H4("Word Cloud Analysis"),
-        dbc.Row(
-            [
-                dbc.Col(html.Img(src='/assets/positive_wordcloud.png', style={'width': '100%'}), width=4),
-                dbc.Col(html.Img(src='/assets/neutral_wordcloud.png', style={'width': '100%'}), width=4),
-                dbc.Col(html.Img(src='/assets/negative_wordcloud.png', style={'width': '100%'}), width=4)
-            ]
-        )
+# Dropdown to select source
+source_dropdown = dcc.Dropdown(
+    id='source-dropdown',
+    options=[
+        {'label': 'All', 'value': ''},
+        {'label': 'YouTube', 'value': 'YouTube'},
+        {'label': 'Reddit', 'value': 'Reddit'}
     ],
-    style=PLOT_CONTAINER_STYLE
+    value='',
+    clearable=False,
+    style={'margin-bottom': '20px'}
 )
 
 # initialise the dash application
@@ -220,32 +136,182 @@ app = dash.Dash(
 app.layout = dbc.Container(
     children=[
         navbar,
-        donut_charts_container,
-        custom_legend,
-        sentiment_plot_container,
-        word_cloud_container,  # Add the word cloud container here
+        source_dropdown,
+        dbc.Container(id='charts-container'),
         comments_table_container
     ],
     fluid=True,
     style=LAYOUT_STYLE,
 )
 
-# callbacks
+@app.callback(
+    Output('charts-container', 'children'),
+    Input('source-dropdown', 'value')
+)
+def update_charts(source):
+    filtered_df = filter_df_by_source(df, source)
+    
+    sentiment_counts = filtered_df['Sentiment'].value_counts()
+    labels_with_counts = [f'{label} ' for label, count in zip(sentiment_counts.index, sentiment_counts.values)]
+    
+    net_sentiment_counts = filtered_df[filtered_df['Sentiment'] != 'neutral']['Sentiment'].value_counts()
+    net_labels_with_counts = [f'{label} ' for label, count in zip(net_sentiment_counts.index, net_sentiment_counts.values)]
+
+    # Donut chart for sentiment count
+    donut_chart = go.Figure(data=[go.Pie(
+        labels=labels_with_counts,
+        values=sentiment_counts.values,
+        hole=.3,
+        textinfo='label+percent', 
+        hoverinfo='label+value+percent',
+        marker=dict(colors=[sentiment_colors[label.strip()] for label in sentiment_counts.index])
+    )])
+
+    donut_chart.update_layout(
+        title_text='Sentiment Distribution',
+        annotations=[dict(text='Sentiment', x=0.5, y=0.5, font_size=12, showarrow=False)],
+        showlegend=False
+    )
+
+    # Net sentiment donut chart
+    net_donut_chart = go.Figure(data=[go.Pie(
+        labels=net_labels_with_counts,
+        values=net_sentiment_counts.values,
+        hole=.3,
+        textinfo='label+percent', 
+        hoverinfo='label+value+percent',
+        marker=dict(colors=[sentiment_colors[label.strip()] for label in net_sentiment_counts.index])
+    )])
+
+    net_donut_chart.update_layout(
+        title_text='Net Sentiment Distribution (Positive vs Negative)',
+        annotations=[dict(text='Net Sentiment', x=0.5, y=0.5, font_size=12, showarrow=False)],
+        showlegend=False
+    )
+
+    # Custom legend
+    custom_legend = html.Div(
+        [
+            html.Span("Sentiment: ", style={'font-weight': 'bold'}),
+            html.Span("Positive", style={'color': sentiment_colors['positive'], 'margin-right': '10px'}),
+            html.Span("Neutral", style={'color': sentiment_colors['neutral'], 'margin-right': '10px'}),
+            html.Span("Negative", style={'color': sentiment_colors['negative']})
+        ],
+        style={'text-align': 'center', 'margin-top': '10px'}
+    )
+
+    # Donut charts container
+    donut_charts_container = dbc.Container(
+        dbc.Row(
+            [
+                dbc.Col(dcc.Graph(figure=donut_chart), width=6),
+                dbc.Col(dcc.Graph(figure=net_donut_chart), width=6)
+            ]
+        ),
+        style=PLOT_CONTAINER_STYLE
+    )
+
+    # Weekly sentiment bar chart
+    weekly_sentiment = filtered_df.groupby(['Week', 'Sentiment']).size().unstack(fill_value=0)
+
+    bar_chart = go.Figure()
+
+    # Add positive sentiments
+    if 'positive' in weekly_sentiment:
+        bar_chart.add_trace(go.Bar(
+            x=weekly_sentiment.index,
+            y=weekly_sentiment['positive'],
+            name='Positive',
+            marker_color=sentiment_colors['positive']
+        ))
+
+    # Add neutral sentiments
+    if 'neutral' in weekly_sentiment:
+        bar_chart.add_trace(go.Bar(
+            x=weekly_sentiment.index,
+            y=weekly_sentiment['neutral'],
+            name='Neutral',
+            marker_color=sentiment_colors['neutral']
+        ))
+
+    # Add negative sentiments (inverted to point downwards)
+    if 'negative' in weekly_sentiment:
+        bar_chart.add_trace(go.Bar(
+            x=weekly_sentiment.index,
+            y=-weekly_sentiment['negative'],
+            name='Negative',
+            marker_color=sentiment_colors['negative']
+        ))
+
+    bar_chart.update_layout(
+        title='Weekly Sentiment',
+        xaxis_title='Time',
+        yaxis_title='Count',
+        barmode='group',
+        bargap=0.2,
+        bargroupgap=0.1,
+        showlegend=False
+    )
+
+    bar_chart_custom_legend = html.Div(
+        [
+            html.Span("Sentiment: ", style={'font-weight': 'bold'}),
+            html.Span("Positive", style={'color': sentiment_colors['positive'], 'margin-right': '10px'}),
+            html.Span("Neutral", style={'color': sentiment_colors['neutral'], 'margin-right': '10px'}),
+            html.Span("Negative", style={'color': sentiment_colors['negative']})
+        ],
+        style={'text-align': 'center', 'margin-top': '10px'}
+    )
+
+    sentiment_plot_container = dbc.Container(
+        children=[
+            dcc.Graph(figure=bar_chart),
+            bar_chart_custom_legend
+        ],
+        style=PLOT_CONTAINER_STYLE
+    )
+
+    positive_wordcloud, neutral_wordcloud, negative_wordcloud = generate_wordclouds(filtered_df)
+    positive_image = wordcloud_to_image(positive_wordcloud)
+    neutral_image = wordcloud_to_image(neutral_wordcloud)
+    negative_image = wordcloud_to_image(negative_wordcloud)
+
+    wordcloud_container = dbc.Container(
+        children=[
+            html.H4("Word Cloud Sentiment", style={'text-align': 'center'}),
+            dbc.Row(
+                [
+                    dbc.Col(html.Img(src="data:image/png;base64,{}".format(base64.b64encode(positive_image.read()).decode())), width=4),
+                    dbc.Col(html.Img(src="data:image/png;base64,{}".format(base64.b64encode(neutral_image.read()).decode())), width=4),
+                    dbc.Col(html.Img(src="data:image/png;base64,{}".format(base64.b64encode(negative_image.read()).decode())), width=4),
+                ],
+            ),
+            html.Div(
+                [
+                    html.Span("Word Cloud Sentiment: ", style={'font-weight': 'bold'}),
+                    html.Span("Positive", style={'color': sentiment_colors['positive'], 'margin-right': '10px'}),
+                    html.Span("Neutral", style={'color': sentiment_colors['neutral'], 'margin-right': '10px'}),
+                    html.Span("Negative", style={'color': sentiment_colors['negative']})
+                ],
+                style={'text-align': 'center', 'margin-top': '10px'}
+            )
+        ],
+        style=PLOT_CONTAINER_STYLE
+    )
+
+    return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container]
+
 @app.callback(
     Output('comments-table', 'data'),
     [Input('comments-table', 'page_current'),
-     Input('comments-table', 'page_size')]
+     Input('comments-table', 'page_size'),
+     Input('source-dropdown', 'value')]
 )
-def update_comments_table(page_current, page_size):
+def update_comments_table(page_current, page_size, source):
+    filtered_df = filter_df_by_source(df, source)
     start = page_current * page_size
     end = start + page_size
-
-    comments_df = df
-
-    # Modify headlines to include anchor tags
-    paginated_df = comments_df[['Comment', 'Source', 'Sentiment', 'Sentiment_Score']].iloc[start:end].copy()
-    # paginated_df['Headline'] = paginated_df.apply(lambda row: f"[{row['Headline']}]({row['URL']})", axis=1)
-
+    paginated_df = filtered_df[['Comment', 'Source', 'Sentiment', 'Sentiment_Score']].iloc[start:end].copy()
     return paginated_df.to_dict('records')
 
 # running the dashboard locally on http://127.0.0.1:8050/
