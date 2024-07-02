@@ -12,6 +12,7 @@ import base64
 import dash
 import io
 import re
+from sklearn.feature_extraction.text import CountVectorizer
 
 # initial variable for neutrogena
 df1 = pd.read_csv('./youtube_sentiment/youtube_comments_with_sentiment.csv')
@@ -56,6 +57,15 @@ def wordcloud_to_image(wordcloud):
     wordcloud.to_image().save(buf, format='PNG')
     buf.seek(0)
     return buf
+
+def extract_keywords(df, sentiment, n=10):
+    comments = df[df['Sentiment'] == sentiment]['Cleaned_Comment']
+    vectorizer = CountVectorizer(stop_words='english')
+    X = vectorizer.fit_transform(comments)
+    word_counts = X.sum(axis=0).A1
+    keywords = [(word, word_counts[idx]) for word, idx in vectorizer.vocabulary_.items()]
+    sorted_keywords = sorted(keywords, key=lambda x: x[1], reverse=True)[:n]
+    return sorted_keywords
 
 # Components
 navbar = dbc.Navbar(
@@ -298,8 +308,107 @@ def update_charts(source):
         ],
         style=PLOT_CONTAINER_STYLE
     )
+    # Extract top keywords for each sentiment
+    positive_keywords = extract_keywords(filtered_df, 'positive')
+    neutral_keywords = extract_keywords(filtered_df, 'neutral')
+    negative_keywords = extract_keywords(filtered_df, 'negative')
 
-    return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container]
+    # Keywords container
+    keywords_container = dbc.Container(
+        children=[
+            html.H4("Top Keywords", style={'text-align': 'center'}),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Div(
+                            [
+                                html.H5("Positive"),
+                                dash_table.DataTable(
+                                    columns=[{"name": "Keyword", "id": "Keyword"}, {"name": "Count", "id": "Count"}],
+                                    data=[{"Keyword": keyword, "Count": count} for keyword, count in positive_keywords],
+                                    style_table={'overflowX': 'auto'},
+                                    style_cell={
+                                        'whiteSpace': 'normal',
+                                        'height': 'auto',
+                                        'textAlign': 'left',
+                                        'paddingLeft': '10px',
+                                        'paddingRight': '10px',
+                                        'fontFamily': 'Arial, sans-serif',
+                                    },
+                                    style_data_conditional=[
+                                        {
+                                            'if': {'row_index': 'odd'},
+                                            'backgroundColor': 'rgb(248, 248, 248)'  # Light grey background for odd rows (striped effect)
+                                        }
+                                    ],
+                                )
+                            ]
+                        ),
+                        width=4
+                    ),
+                    dbc.Col(
+                        html.Div(
+                            [
+                                html.H5("Neutral"),
+                                dash_table.DataTable(
+                                    columns=[{"name": "Keyword", "id": "Keyword"}, {"name": "Count", "id": "Count"}],
+                                    data=[{"Keyword": keyword, "Count": count} for keyword, count in neutral_keywords],
+                                    style_table={'overflowX': 'auto'},
+                                    style_cell={
+                                        'whiteSpace': 'normal',
+                                        'height': 'auto',
+                                        'textAlign': 'left',
+                                        'paddingLeft': '10px',
+                                        'paddingRight': '10px',
+                                        'fontFamily': 'Arial, sans-serif',
+                                    },
+                                    style_data_conditional=[
+                                        {
+                                            'if': {'row_index': 'odd'},
+                                            'backgroundColor': 'rgb(248, 248, 248)'  # Light grey background for odd rows (striped effect)
+                                        }
+                                    ],
+                                )
+                            ]
+                        ),
+                        width=4
+                    ),
+                    dbc.Col(
+                        html.Div(
+                            [
+                                html.H5("Negative"),
+                                dash_table.DataTable(
+                                    columns=[{"name": "Keyword", "id": "Keyword"}, {"name": "Count", "id": "Count"}],
+                                    data=[{"Keyword": keyword, "Count": count} for keyword, count in negative_keywords],
+                                    style_table={'overflowX': 'auto'},
+                                    style_cell={
+                                        'whiteSpace': 'normal',
+                                        'height': 'auto',
+                                        'textAlign': 'left',
+                                        'paddingLeft': '10px',
+                                        'paddingRight': '10px',
+                                        'fontFamily': 'Arial, sans-serif',
+                                    },
+                                    style_data_conditional=[
+                                        {
+                                            'if': {'row_index': 'odd'},
+                                            'backgroundColor': 'rgb(248, 248, 248)'  # Light grey background for odd rows (striped effect)
+                                        }
+                                    ],
+                                )
+                            ]
+                        ),
+                        width=4
+                    ),
+                ]
+            )
+        ],
+        style=PLOT_CONTAINER_STYLE
+    )
+
+    return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container, keywords_container]
+
+    # return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container]
 
 @app.callback(
     Output('comments-table', 'data'),
