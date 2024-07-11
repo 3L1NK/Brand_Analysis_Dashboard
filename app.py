@@ -40,15 +40,17 @@ def filter_df_by_source(df, source):
         return df[df['Source'] == source]
     return df
 
-# Generate word clouds
+def green_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+    return "hsl(120, 100%, {}%)".format(random_state.randint(30, 70))  # Green color with lightness between 30% and 70%
+
 def generate_wordclouds(df):
     positive_comments = " ".join(comment for comment in df[df.Sentiment == 'positive'].Cleaned_Comment)
     neutral_comments = " ".join(comment for comment in df[df.Sentiment == 'neutral'].Cleaned_Comment)
     negative_comments = " ".join(comment for comment in df[df.Sentiment == 'negative'].Cleaned_Comment)
     
-    positive_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='Blues', stopwords=STOPWORDS.union(additional_stopwords)).generate(positive_comments)
-    neutral_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='gist_gray', stopwords=STOPWORDS.union(additional_stopwords)).generate(neutral_comments)
-    negative_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='Reds', stopwords=STOPWORDS.union(additional_stopwords)).generate(negative_comments)
+    positive_wordcloud = WordCloud(width=400, height=200, background_color='white', color_func=green_color_func, stopwords=STOPWORDS).generate(positive_comments)
+    neutral_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='gist_gray', stopwords=STOPWORDS).generate(neutral_comments)
+    negative_wordcloud = WordCloud(width=400, height=200, background_color='white', colormap='Reds', stopwords=STOPWORDS).generate(negative_comments)
 
     return positive_wordcloud, neutral_wordcloud, negative_wordcloud
 
@@ -59,13 +61,21 @@ def wordcloud_to_image(wordcloud):
     return buf
 
 def extract_keywords(df, sentiment, n=10):
+    # Define unwanted keywords inside the function
+    unwanted_keywords = ['neutrogena', 'im', 'just', 'like']
+    
     comments = df[df['Sentiment'] == sentiment]['Cleaned_Comment']
     vectorizer = CountVectorizer(stop_words='english')
     X = vectorizer.fit_transform(comments)
     word_counts = X.sum(axis=0).A1
     keywords = [(word, word_counts[idx]) for word, idx in vectorizer.vocabulary_.items()]
-    sorted_keywords = sorted(keywords, key=lambda x: x[1], reverse=True)[:n]
+    
+    # Filter out unwanted keywords
+    filtered_keywords = [kw for kw in keywords if kw[0] not in unwanted_keywords]
+    
+    sorted_keywords = sorted(filtered_keywords, key=lambda x: x[1], reverse=True)[:n]
     return sorted_keywords
+
 
 # Components
 navbar = dbc.Navbar(
@@ -83,7 +93,7 @@ navbar = dbc.Navbar(
 
 # Colors for sentiments
 sentiment_colors = {
-    'positive': 'blue',
+    'positive': 'green',
     'neutral': 'grey',
     'negative': 'red'
 }
