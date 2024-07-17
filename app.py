@@ -1,3 +1,16 @@
+#!/usr/bin/python3 
+# -- coding: utf-8 --
+"""
+Created on Wed July 17 17:06:37 2024
+
+@author: Eric Korin Syahreza
+"""
+
+'''
+you need to install the following packages:
+#!pip install dash dash-bootstrap-components plotly pandas scikit-learn wordcloud
+'''
+
 # import packages
 from dash import Dash, html, dcc, callback, Output, Input, clientside_callback, ALL, ctx, dash_table
 from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE, PLOT_CONTAINER_STYLE
@@ -418,7 +431,6 @@ def update_charts(source):
 
     return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container, keywords_container]
 
-    # return [donut_charts_container, custom_legend, sentiment_plot_container, wordcloud_container]
 
 @app.callback(
     Output('comments-table', 'data'),
