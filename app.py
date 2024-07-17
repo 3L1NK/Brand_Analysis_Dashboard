@@ -2,17 +2,17 @@
 from dash import Dash, html, dcc, callback, Output, Input, clientside_callback, ALL, ctx, dash_table
 from assets.styles import NAVBAR_STYLE, LAYOUT_STYLE, HEADER_TITLE_STYLE, PLOT_CONTAINER_STYLE
 from dash_bootstrap_components._components.Container import Container
+from sklearn.feature_extraction.text import CountVectorizer
 import dash_bootstrap_components as dbc
 from wordcloud import WordCloud, STOPWORDS
 import plotly.graph_objs as go
-from datetime import datetime
-import matplotlib.pyplot as plt
 import pandas as pd
+import webbrowser
 import base64
 import dash
 import io
 import re
-from sklearn.feature_extraction.text import CountVectorizer
+
 
 # initial variable for neutrogena
 df1 = pd.read_csv('./youtube_sentiment/youtube_comments_with_sentiment.csv')
@@ -435,5 +435,7 @@ def update_comments_table(page_current, page_size, source):
 
 # running the dashboard locally on http://127.0.0.1:8050/
 if __name__ == '__main__':
-    app.run(debug=False, port=8050)
+    port = 8050
+    webbrowser.open(f'http://127.0.0.1:{port}')
+    app.run(debug=False, port=port)
     print("running the dashboard locally on http://127.0.0.1:8050/")
