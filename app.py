@@ -27,12 +27,14 @@ import io
 import re
 
 
-# initial variable for neutrogena
+# Importing Sentiment Data
 df1 = pd.read_csv('./youtube_sentiment/youtube_comments_with_sentiment.csv')
 df2 = pd.read_csv('./reddit_sentiment/neutrogena_reddit.csv')
 df1['Source'] = 'YouTube'
 df2['Source'] = 'Reddit'
 df = pd.concat([df1, df2], ignore_index=True)
+
+
 
 # Define a function to clean the comments
 def clean_comment(comment):
@@ -56,6 +58,7 @@ def filter_df_by_source(df, source):
 def green_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
     return "hsl(120, 100%, {}%)".format(random_state.randint(30, 70))  # Green color with lightness between 30% and 70%
 
+# Generating Wordcloud
 def generate_wordclouds(df):
     positive_comments = " ".join(comment for comment in df[df.Sentiment == 'positive'].Cleaned_Comment)
     neutral_comments = " ".join(comment for comment in df[df.Sentiment == 'neutral'].Cleaned_Comment)
