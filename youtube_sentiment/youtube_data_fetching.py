@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # Set up YouTube Data API
 api_service_name = "youtube"
 api_version = "v3"
-DEVELOPER_KEY = "AIzaSyAMVbpj1t3zoXDLcZYBRp_i8hrt8uAn_JY"
+DEVELOPER_KEY = ""
 
 youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=DEVELOPER_KEY)
 
