@@ -11,7 +11,7 @@ This project is a dashboard for analyzing the sentiment of comments of Brand fro
 5. Data table displaying comments with sentiment scores.
 
 ## Prerequisites
-To run this application, you'll need to have Python 3 installed along with the following Python packages:
+To run this application, you will need to have Python 3 installed along with the following Python packages:
 
 - dash
 - dash-bootstrap-components
@@ -20,13 +20,42 @@ To run this application, you'll need to have Python 3 installed along with the f
 - scikit-learn
 - wordcloud
 
-## Installation
+Here is the `requirements.txt` file for the specified Python libraries:
 
-Before running the code, ensure you have the required packages installed. You can install them using `pip`:
-
-```sh
-pip install dash dash-bootstrap-components plotly pandas scikit-learn wordcloud
 ```
+dash==2.9.3
+dash-bootstrap-components==1.4.1
+plotly==5.15.0
+pandas==2.0.3
+scikit-learn==1.3.0
+wordcloud==1.9.2
+```
+
+## Installation and Setup
+
+To run this application you will need to have Python 3 installed on your machine. Follow the steps below to set up your environment and run the application:
+
+1. **Clone the repository**:
+   ```sh
+   git clone https://github.com/3L1NK/Brand_sentiment_analysis.git
+   cd https://github.com/3L1NK/Brand_sentiment_analysis.git
+   ```
+
+2. **Create a virtual environment** (optional but recommended):
+   ```sh
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. **Install the required packages**:
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+4. **Run the application**:
+   ```sh
+   python app.py
+   ```
 
 ## Running the Dashboard
 
